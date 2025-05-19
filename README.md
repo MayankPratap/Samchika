@@ -67,7 +67,9 @@ Benchmarked against naïve BufferedReader-based implementations on files of vari
 
 ✅ 16 GB
 
-Significant performance improvements were observed, especially in multi-core systems.
+Significant performance improvements were observed, especially in multi-core systems ( More than 70% performance gain ) 
+
+The gain in time saved improves in comparison to naive code, as we increase the size of input file.  Also for huge performance gain in time, the memory used for even large files ( 16GB ) is manageable ( ~ 800 MB ).
 
 
 ![Perf visualization](images/time_memory.jpg)
