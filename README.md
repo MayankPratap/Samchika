@@ -74,11 +74,14 @@ The gain in time saved improves in comparison to naive code, as we increase the 
 
 ![Perf visualization](images/time_memory.jpg)
 
+## License
+This library is licensed under the MIT License, which means you can freely use, modify, and distribute it, even in commercial applications. All we ask is that you include the original copyright notice and license text in any copy of the library or substantial portion of it.
+
 ## 💡 Inspiration
 
 This project was inspired by:
 
-1) A friend who published a JavaScript library – which sparked the motivation to do something similar in Java.
+1) Shubham Maurya, a dear friend,  who published a JavaScript library – which sparked the motivation to do something similar in Java.
 
 2) A LinkedIn post discussing the challenges of processing large text files – which gave me the idea to solve it with an elegant API and fast multithreaded architecture.
 
