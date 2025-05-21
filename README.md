@@ -16,6 +16,32 @@ It is built with a strong focus on **multithreading** to handle CPU-intensive fi
 
 ---
 
+## Use Cases
+Samchika excels in several scenarios where multithreaded file processing provides significant advantages:
+
+- Log Analysis & Processing
+- ETL (Extract, Transform, Load) Operations
+- Large Text Corpus Processing
+- Batch Report Generation
+- Data Transformation Pipelines
+- Real-time Data Processing
+
+See the examples directory for detailed implementations of these use cases.
+
+### Quick Example
+java// Transform a large CSV file with optimal performance
+
+```
+SmartFileProcessor.builder()
+    .inputPath("large_dataset.csv")
+    .outputPath("transformed_dataset.csv")
+    .batchSize(10000)
+    .lineProcessor(line -> line.toUpperCase())
+    .displayStats(true)
+    .build()
+    .execute();
+```
+
 ## 📦 Installation
 
 ### Maven
