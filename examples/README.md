@@ -1,71 +1,76 @@
 # Samchika Examples
 This directory contains example implementations that demonstrate different use cases for the Samchika library.
-Available Examples
 
-1. Log Analysis (LogAnalysis.java)
-Demonstrates how to process large log files to extract patterns, errors, and statistics.
-java
+## Available Examples
 
-### Highlight from the example
-```
-SmartFileProcessor.builder()
-    .inputPath("server.log")
-    .outputPath("errors.log") 
-    .lineProcessor(line -> line.contains("ERROR") ? line : null)
-    .outputToJson("log_stats.json")
-    .build()
-    .execute();
-```
+1. ### Log Analysis (LogAnalysis.java)
 
-2. Data Transformation (DataTransformation.java)
-Shows how to convert data between formats while maintaining performance.
-java
+    Demonstrates how to process large log files to extract patterns, errors, and statistics.
 
-### Highlight from the example
-```
-SmartFileProcessor.builder()
-    .inputPath("source.csv")
-    .outputPath("target.json")
-    .batchProcessor(batch -> {
-        return batch.stream()
-            .map(JsonConverter::fromCsv)
-            .collect(Collectors.toList());
-    })
-    .build()
-    .execute();
-```
+     Sample snippet : 
+    ```
+    SmartFileProcessor.builder()
+        .inputPath("server.log")
+        .outputPath("errors.log") 
+        .lineProcessor(line -> line.contains("ERROR") ? line : null)
+        .outputToJson("log_stats.json")
+        .build()
+        .execute();
+    ```
 
-3. Text Processing (TextProcessing.java)
-Demonstrates NLP and text analysis on large corpora.
-java
+2. ### Data Transformation (DataTransformation.java)
 
-### Highlight from the example
-```
-SmartFileProcessor.builder()
-    .inputPath("corpus.txt")
-    .outputPath("processed.txt")
-    .batchSize(5000)
-    .processorThreads(16)
-    .lineProcessor(TextAnalyzer::extractEntities)
-    .build()
-    .execute();
-```
+    Shows how to convert data between formats while maintaining performance.
+    java
+    
+    Sample snippet : 
+    ```
+    SmartFileProcessor.builder()
+        .inputPath("source.csv")
+        .outputPath("target.json")
+        .batchProcessor(batch -> {
+            return batch.stream()
+                .map(JsonConverter::fromCsv)
+                .collect(Collectors.toList());
+        })
+        .build()
+        .execute();
+    ```
 
-5. Batch Reporting (BatchReporting.java)
-Shows how to generate reports from large datasets with performance metrics.
-java
+3. ### Text Processing (TextProcessing.java)
 
-### Highlight from the example
+    Demonstrates NLP and text analysis on large corpora.
+    java
+    
+     Sample snippet : 
+    
+    ```
+    SmartFileProcessor.builder()
+        .inputPath("corpus.txt")
+        .outputPath("processed.txt")
+        .batchSize(5000)
+        .processorThreads(16)
+        .lineProcessor(TextAnalyzer::extractEntities)
+        .build()
+        .execute();
+    ```
 
-```
-SmartFileProcessor.builder()
-    .inputPath("monthly_data.csv")
-    .outputPath("report.txt")
-    .batchProcessor(ReportGenerator::createSections)
-    .outputToCSV("report_metrics.csv")
-    .build()
-    .execute();
-```
+4. ### Batch Reporting (BatchReporting.java)
+
+    Shows how to generate reports from large datasets with performance metrics.
+    java
+    
+    Sample snippet: 
+    
+    ```
+    SmartFileProcessor.builder()
+        .inputPath("monthly_data.csv")
+        .outputPath("report.txt")
+        .batchProcessor(ReportGenerator::createSections)
+        .outputToCSV("report_metrics.csv")
+        .build()
+        .execute();
+    ```
 
 
 
