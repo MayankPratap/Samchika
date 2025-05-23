@@ -107,7 +107,7 @@ This library is licensed under the MIT License, which means you can freely use, 
 
 This project was inspired by:
 
-1) Shubham Maurya, a dear friend,  who published a JavaScript library – which sparked the motivation to do something similar in Java.
+1) Shubham Maurya ( https://github.com/complex1 ) , a dear friend,  who published a JavaScript library – which sparked the motivation to do something similar in Java.
 
 2) A LinkedIn post discussing the challenges of processing large text files – which gave me the idea to solve it with an elegant API and fast multithreaded architecture.
 
