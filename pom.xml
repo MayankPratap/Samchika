@@ -4,9 +4,22 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.samchika</groupId>
+    <groupId>io.github.MayankPratap</groupId>
     <artifactId>samchika-file-processor</artifactId>
     <version>1.0.0</version>
+    <name>Samchika</name>
+    <description>A fast and light-weight multithreaded file processing library for Java.</description>
+    <url>https://github.com/MayankPratap/Samchika</url>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
+    <scm>
+        <url>https://github.com/MayankPratap/Samchika</url>
+        <connection>scm:git:git://github.com/MayankPratap/Samchika.git</connection>
+    </scm>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
