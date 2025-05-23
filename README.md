@@ -46,17 +46,34 @@ SmartFileProcessor.builder()
 
 ### Maven
 
-```xml
-<dependency>
-    <groupId>com.samchika</groupId>
-    <artifactId>samchika-file-processor</artifactId>
-    <version>1.0.0</version>
-</dependency>
+```
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>com.github.mayankpratap</groupId>
+        <artifactId>samchika</artifactId>
+        <version>1.0.0</version>
+    </dependency>
+</dependencies>
+
 ```
 
 ### Gradle
 ```
-implementation 'com.samchika:samchika-file-processor:1.0.0'
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    implementation 'com.github.mayankpratap:samchika:1.0.0'
+}
+
 ```
 
 ## 🛠️ How to Use
