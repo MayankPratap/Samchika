@@ -9,6 +9,7 @@
     <name>Samchika</name>
     <description>A fast and light-weight multithreaded file processing library for Java.</description>
     <url>https://github.com/MayankPratap/Samchika</url>
+
     <licenses>
         <license>
             <name>MIT License</name>
