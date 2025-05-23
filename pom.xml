@@ -1,11 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.mayankpratap</groupId>
-    <artifactId>samchika-file-processor</artifactId>
+    <groupId>com.github.mayankpratap</groupId>
+    <artifactId>samchika</artifactId>
     <version>1.0.0</version>
     <name>Samchika</name>
     <description>A fast and light-weight multithreaded file processing library for Java.</description>
@@ -14,17 +13,13 @@
         <license>
             <name>MIT License</name>
             <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
         </license>
     </licenses>
-    <scm>
-        <url>https://github.com/MayankPratap/Samchika</url>
-        <connection>scm:git:git://github.com/MayankPratap/Samchika.git</connection>
-    </scm>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
 </project>
