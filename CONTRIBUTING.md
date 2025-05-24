@@ -21,26 +21,25 @@ Contributing to Samchika
     ```
 3. 📦 Dependencies
 
-      JDK 11 or above
-      Maven or Gradle (your choice)
+     - JDK 11 or above
+     -  Maven or Gradle (your choice)
 
 4. ✨ Coding Style
       Please follow:
-
-    Google Java Style Guide
-    Keep logging clean and minimal
-    Avoid unnecessary synchronization (we’re performance-oriented!)
+    - Google Java Style Guide
+    - Keep logging clean and minimal
+    - Avoid unnecessary synchronization (we’re performance-oriented!)
 
 5. . 🚀 Submitting Pull Requests
-    Create a new branch from main.
+   - Create a new branch from main.
     
-    Push your changes.
+   - Push your changes.
 
-    Open a pull request with a clear description.
+   - Open a pull request with a clear description.
 
-    Link related issue(s) in the PR description.
+   - Link related issue(s) in the PR description.
 
-    Follow conventional commit messages if possible.
+   - Follow conventional commit messages if possible.
 
 6. 🧪 Suggested Areas to Contribute
 
