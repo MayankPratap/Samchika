@@ -1,5 +1,7 @@
 package com.samchika;
 
+import com.samchika.utility.ThreadStats;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -88,7 +90,7 @@ public class SmartFileProcessor {
         // Named thread factories for better profiler identification
         ThreadFactory processorFactory = r -> {
             Thread t = new Thread(r, "processor-thread-" + threadStatsMap.size());
-            threadStatsMap.put(t.getName(), new SmartFileProcessor.ThreadStats());
+            threadStatsMap.put(t.getName(), new ThreadStats());
             return t;
         };
 
@@ -378,12 +380,12 @@ public class SmartFileProcessor {
                 writer.write("      \"thread\": \"" + threadName + "\",\n");
                 writer.write("      \"operations\": [\n");
 
-                int opCount = stats.totalTimeByOperation.size();
+                int opCount = stats.getTotalTimeByOperation().size();
                 int j = 0;
-                for (Map.Entry<String, Long> op : stats.totalTimeByOperation.entrySet()) {
+                for (Map.Entry<String, Long> op : stats.getTotalTimeByOperation().entrySet()) {
                     String opName = op.getKey();
                     long totalTime = op.getValue();
-                    int count = stats.operationCounts.getOrDefault(opName, 0);
+                    int count = stats.getOperationCounts().getOrDefault(opName, 0);
                     double avgTime = count > 0 ? (totalTime / 1_000_000.0) / count : 0;
                     double totalTimeMs = totalTime / 1_000_000.0;
 
@@ -437,10 +439,10 @@ public class SmartFileProcessor {
                 String threadName = entry.getKey();
                 ThreadStats stats = entry.getValue();
 
-                for (Map.Entry<String, Long> op : stats.totalTimeByOperation.entrySet()) {
+                for (Map.Entry<String, Long> op : stats.getTotalTimeByOperation().entrySet()) {
                     String operation = op.getKey();
                     long totalTimeNs = op.getValue();
-                    int calls = stats.operationCounts.getOrDefault(operation, 0);
+                    int calls = stats.getOperationCounts().getOrDefault(operation, 0);
                     double totalTimeMs = totalTimeNs / 1_000_000.0;
                     double avgTimeMs = calls > 0 ? totalTimeMs / calls : 0;
 
@@ -464,35 +466,6 @@ public class SmartFileProcessor {
 
     }
 
-    /** Helper class to track thread operation timing statistics
-     **/
-    private static class ThreadStats {
-        private final Map<String, Long> operationStartTimes = new ConcurrentHashMap<>();
-        private final Map<String, Long> totalTimeByOperation = new ConcurrentHashMap<>();
-        private final Map<String, Integer> operationCounts = new ConcurrentHashMap<>();
 
-        public void startOperation(String name) {
-            operationStartTimes.put(name, System.nanoTime());
-        }
-
-        public void endOperation(String name) {
-            Long startTime = operationStartTimes.remove(name);
-            if (startTime != null) {
-                long duration = System.nanoTime() - startTime;
-                totalTimeByOperation.compute(name, (k, v) -> (v == null) ? duration : v + duration);
-                operationCounts.compute(name, (k, v) -> (v == null) ? 1 : v + 1);
-            }
-        }
-
-        public void printStats() {
-            totalTimeByOperation.forEach((operation, totalTime) -> {
-                int count = operationCounts.getOrDefault(operation, 0);
-                double avgTimeMs = count > 0 ? (totalTime / 1_000_000.0) / count : 0;
-                double totalTimeMs = totalTime / 1_000_000.0;
-                System.out.printf("  %-20s: %6d calls, %10.2f ms total, %8.3f ms avg%n",
-                        operation, count, totalTimeMs, avgTimeMs);
-            });
-        }
-    }
 
 }
