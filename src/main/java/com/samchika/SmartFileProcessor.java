@@ -29,6 +29,7 @@ public class SmartFileProcessor {
     private final Path jsonPath;
     private final Path csvPath;
     private final Boolean isDisplayStats;
+    private final boolean isOrdered;
 
     // not part of builder
     private static final int QUEUE_CAPACITY = 100;
@@ -54,26 +55,26 @@ public class SmartFileProcessor {
     private static final ConcurrentHashMap<String, ThreadStats> threadStatsMap = new ConcurrentHashMap<>();
 
 
-    // private constructor : only builder can create.
-    private SmartFileProcessor(Builder builder) {
+    // package-private constructor : builder can access it from outside.
+    SmartFileProcessor(SmartFileProcessorBuilder builder) {
 
-        this.inputPath = builder.inputPath;
-        this.outputPath = builder.outputPath;
-        this.batchSize = builder.batchSize;
-        this.processorThreads = builder.processorThreads;
-        this.lineProcessor = builder.lineProcessor;
-        this.batchProcessor = builder.batchProcessor;
-        this.jsonPath = builder.jsonPath;
-        this.csvPath = builder.csvPath;
-        this.isDisplayStats = builder.isDisplayStats;
+        this.inputPath = builder.getInputPath();
+        this.outputPath = builder.getOutputPath();
+        this.batchSize = builder.getBatchSize();
+        this.processorThreads = builder.getProcessorThreads();
+        this.lineProcessor = builder.getLineProcessor();
+        this.batchProcessor = builder.getBatchProcessor();
+        this.jsonPath = builder.getJsonPath();
+        this.csvPath = builder.getCsvPath();
+        this.isDisplayStats = builder.getIsDisplayStats();
+        this.isOrdered = builder.getIsOrdered();
     }
 
-    public static Builder builder(){
+    public static SmartFileProcessorBuilder builder(){
 
-        return new Builder();
+        return new SmartFileProcessorBuilder();
 
     }
-
 
     public void execute(){
 
@@ -493,93 +494,5 @@ public class SmartFileProcessor {
             });
         }
     }
-    public static class Builder {
-
-        private Path inputPath;
-        private Path outputPath;
-        private int batchSize = 10000;
-        private int processorThreads = Runtime.getRuntime().availableProcessors();
-        private LineProcessor lineProcessor;
-        private BatchProcessor batchProcessor;
-        private Path jsonPath;
-        private Path csvPath;
-        private Boolean isDisplayStats;
-
-        public Builder inputPath(String inputPathString) {
-
-            this.inputPath = Paths.get(inputPathString);
-            return this;
-
-        }
-
-        public Builder outputPath(String outputPathString) {
-
-            this.outputPath = Paths.get(outputPathString);
-            return this;
-        }
-
-        public Builder batchSize(int batchSize) {
-
-            this.batchSize = batchSize;
-            return this;
-
-        }
-
-        public Builder processorThreads(int threads) {
-
-            this.processorThreads = threads;
-            return this;
-
-        }
-
-        public Builder lineProcessor(LineProcessor lineProcessor) {
-
-            this.lineProcessor = lineProcessor;
-            return this;
-        }
-
-        public Builder batchProcessor(BatchProcessor batchProcessor) {
-
-            this.batchProcessor = batchProcessor;
-            return this;
-
-        }
-
-        public Builder outputToJson(String jsonPathString){
-            this.jsonPath = Paths.get(jsonPathString);
-            return this;
-        }
-
-        public Builder outputToCSV(String csvPathString){
-            this.csvPath = Paths.get(csvPathString);
-            return this;
-        }
-
-        public Builder displayStats(Boolean isDisplayStats){
-            this.isDisplayStats = isDisplayStats;
-            return this;
-        }
-
-        public SmartFileProcessor build() {
-
-            // validation
-            if (inputPath == null || outputPath == null) {
-
-                throw new IllegalArgumentException("Input and output paths must be provided");
-
-            }
-
-            if (lineProcessor == null && batchProcessor == null) {
-
-                throw new IllegalArgumentException("Either line processor or batch processor must be provided");
-
-            }
-
-            return new SmartFileProcessor(this);
-
-        }
-
-    }
-
 
 }
