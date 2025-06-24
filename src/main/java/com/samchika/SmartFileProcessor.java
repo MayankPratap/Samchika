@@ -57,10 +57,8 @@ public class SmartFileProcessor {
     // Thread-specific timing data
     private static final ConcurrentHashMap<String, ThreadStats> threadStatsMap = new ConcurrentHashMap<>();
 
-
     // package-private constructor : builder can access it from outside.
     SmartFileProcessor(SmartFileProcessorBuilder builder) {
-
         this.inputPath = builder.getInputPath();
         this.outputPath = builder.getOutputPath();
         this.batchSize = builder.getBatchSize();
@@ -74,126 +72,97 @@ public class SmartFileProcessor {
     }
 
     public static SmartFileProcessorBuilder builder(){
-
         return new SmartFileProcessorBuilder();
-
     }
 
     public void execute(){
 
-        if (!hasRun.compareAndSet(false, true)) {
-            throw new IllegalStateException("One smart-file-processor instance is already running.");
-        }
+        ensureOnlyOneInstanceIsRunning(); // To ensure client does not call execute method while already one call is executing.
 
         wallClockStart = System.nanoTime(); // Start wall-clock timer
         memoryStart = getUsedMemory();
 
         // Named thread factories for better profiler identification
-        ThreadFactory processorFactory = r -> {
-            Thread t = new Thread(r, "processor-thread-" + threadStatsMap.size());
-            threadStatsMap.put(t.getName(), new ThreadStats());
-            return t;
-        };
-
-        ThreadFactory flushFactory = r -> {
-            Thread t = new Thread(r, "flush-thread");
-            threadStatsMap.put(t.getName(), new ThreadStats());
-            return t;
-        };
+        ThreadFactory processorFactory = getProcessorFactory();
+        ThreadFactory flushFactory = getFlushFactory();
 
         // Shared queue between producers ( processors ) and the writer.
         BlockingQueue<List<String>> queue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
-        ExecutorService processorPool = new ThreadPoolExecutor(
-                this.processorThreads,
-                this.processorThreads,
-                0L,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(20), // limit task queue size
-                processorFactory,
-                new ThreadPoolExecutor.CallerRunsPolicy() // apply backpressure
-        );
 
-        ExecutorService flushExecutor = new ThreadPoolExecutor(
-                1, 1, 0L, TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(10),
-                flushFactory,
-                new ThreadPoolExecutor.CallerRunsPolicy()
-        );
+        ExecutorService processorPool = getProcessorPool(processorFactory);
+        ExecutorService flushExecutor = getFlushExecutor(flushFactory);
 
         // Dedicated writer thread
-        Thread writerThread = new Thread(() -> {
-
-            ThreadStats stats = new ThreadStats();
-            threadStatsMap.put("writer-thread", stats);
-
-            try(BufferedWriter writer = Files.newBufferedWriter(outputPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)){
-
-                List<String> buffer = new ArrayList<>();
-                int bufferSize = 0;
-
-                final int FLUSH_THRESHOLD_BYTES = 8 * 1024 * 1024; // 8 MB
-
-
-                while(true){
-                    stats.startOperation("queue-take");
-                    List<String> processedBatch = queue.take();
-                    stats.endOperation("queue-take");
-                    if(processedBatch == POISON_PILL) break;
-
-                    stats.startOperation("buffer-add");
-                    for(String line : processedBatch){
-
-                        buffer.add(line);
-                        bufferSize += line.length()*2;
-                    }
-                    stats.endOperation("buffer-add");
-
-                    batchesWritten.incrementAndGet();
-                    if(bufferSize >= FLUSH_THRESHOLD_BYTES){
-
-                        List<String> bufferToFlush = new ArrayList<>(buffer);
-                        buffer.clear();
-                        bufferSize = 0;
-
-                        flushExecutor.submit(() -> {
-                            threadStatsMap.putIfAbsent(Thread.currentThread().getName(), new ThreadStats());
-                            ThreadStats flushStats = threadStatsMap.get(Thread.currentThread().getName());
-                            flushStats.startOperation("flush");
-                            try {
-                                flushBuffer(bufferToFlush, writer);
-                                flushesExecuted.incrementAndGet();
-                            } catch (IOException e) {
-                                System.err.println("Flush error: " + e.getMessage());
-                            }
-
-                            flushStats.endOperation("flush");
-
-                        });
-                    }
-
-                    //System.out.println("Writer thread: after processing time : " + System.currentTimeMillis());
-
-                }
-
-                if(!buffer.isEmpty()){
-                    stats.startOperation("final-flush");
-                    flushBuffer(buffer, writer);
-                    stats.endOperation("final-flush");
-                    flushesExecuted.incrementAndGet();
-                }
-
-                flushExecutor.shutdown();
-                flushExecutor.awaitTermination(1, TimeUnit.HOURS);
-
-            } catch (IOException | InterruptedException e) {
-                System.err.println("Error writing to file: " + e.getMessage());
-                Thread.currentThread().interrupt();
-            }
-
-        }, "writer-thread");
+        Thread writerThread = getWriterThread(queue, flushExecutor);
 
         writerThread.start();
 
+        readAndProcessTasks(queue, processorPool);
+
+        shutdownProcessorsGracefully(processorPool);
+
+        shutdownWriterGracefully(queue, writerThread);
+
+        wallClockEnd = System.nanoTime(); // End wall-clock timer
+        memoryEnd = getUsedMemory();
+
+        logStatistics();
+
+    }
+
+    private void logStatistics() {
+        // Create stats reporter and handle statistics based on user preferences
+        ProcessingStatsReporter statsReporter = new ProcessingStatsReporter(
+                threadStatsMap,
+                batchesSubmitted,
+                batchesProcessed,
+                batchesWritten,
+                flushesExecuted,
+                wallClockStart,
+                wallClockEnd,
+                memoryStart,
+                memoryEnd
+        );
+
+        // Display stats if requested
+        if (isDisplayStats != null && isDisplayStats.booleanValue() == true) {
+            statsReporter.displayStats();
+        }
+
+        // Export to JSON if path provided
+        if (jsonPath != null) {
+            statsReporter.exportStatsToJSON(jsonPath);
+        }
+
+        // Export to CSV if path provided
+        if (csvPath != null) {
+            statsReporter.exportStatsToCSV(csvPath);
+        }
+    }
+
+    private static void shutdownWriterGracefully(BlockingQueue<List<String>> queue, Thread writerThread) {
+        // Signal writer to finish and wait
+        try{
+            queue.put(POISON_PILL);
+            writerThread.join();
+        }catch (InterruptedException ie){
+            System.err.println("Error waiting for writer thread to finish: " + ie.getMessage());
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static void shutdownProcessorsGracefully(ExecutorService processorPool) {
+        // shutdown processor pool and wait for tasks to finish
+        processorPool.shutdown();
+        try{
+            processorPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            System.err.println("Error waiting for processor pool to terminate: " + e.getMessage());
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void readAndProcessTasks(BlockingQueue<List<String>> queue, ExecutorService processorPool) {
         // Read, batch and submit processing tasks.
         try(BufferedReader reader = Files.newBufferedReader(inputPath)){
             List<String> batch = new ArrayList<>(batchSize);
@@ -263,56 +232,121 @@ public class SmartFileProcessor {
         }catch(IOException e){
             System.err.println("Error during file procesing: "+ e.getMessage());
         }
+    }
 
-        // shutdown processor pool and wait for tasks to finish
-        processorPool.shutdown();
-        try{
-            processorPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException e) {
-            System.err.println("Error waiting for processor pool to terminate: " + e.getMessage());
-            Thread.currentThread().interrupt();
-        }
+    private Thread getWriterThread(BlockingQueue<List<String>> queue, ExecutorService flushExecutor) {
+        return new Thread(() -> {
 
-        // Signal writer to finish and wait
-        try{
-            queue.put(POISON_PILL);
-            writerThread.join();
-        }catch (InterruptedException ie){
-            System.err.println("Error waiting for writer thread to finish: " + ie.getMessage());
-            Thread.currentThread().interrupt();
-        }
+            ThreadStats stats = new ThreadStats();
+            threadStatsMap.put("writer-thread", stats);
 
-        wallClockEnd = System.nanoTime(); // End wall-clock timer
-        memoryEnd = getUsedMemory();
+            try(BufferedWriter writer = Files.newBufferedWriter(outputPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)){
 
-        // Create stats reporter and handle statistics based on user preferences
-        ProcessingStatsReporter statsReporter = new ProcessingStatsReporter(
-                threadStatsMap,
-                batchesSubmitted,
-                batchesProcessed,
-                batchesWritten,
-                flushesExecuted,
-                wallClockStart,
-                wallClockEnd,
-                memoryStart,
-                memoryEnd
+                List<String> buffer = new ArrayList<>();
+                int bufferSize = 0;
+
+                final int FLUSH_THRESHOLD_BYTES = 8 * 1024 * 1024; // 8 MB
+
+                while(true){
+                    stats.startOperation("queue-take");
+                    List<String> processedBatch = queue.take();
+                    stats.endOperation("queue-take");
+                    if(processedBatch == POISON_PILL) break;
+
+                    stats.startOperation("buffer-add");
+                    for(String line : processedBatch){
+
+                        buffer.add(line);
+                        bufferSize += line.length()*2;
+                    }
+                    stats.endOperation("buffer-add");
+
+                    batchesWritten.incrementAndGet();
+                    if(bufferSize >= FLUSH_THRESHOLD_BYTES){
+
+                        List<String> bufferToFlush = new ArrayList<>(buffer);
+                        buffer.clear();
+                        bufferSize = 0;
+
+                        flushExecutor.submit(() -> {
+                            threadStatsMap.putIfAbsent(Thread.currentThread().getName(), new ThreadStats());
+                            ThreadStats flushStats = threadStatsMap.get(Thread.currentThread().getName());
+                            flushStats.startOperation("flush");
+                            try {
+                                flushBuffer(bufferToFlush, writer);
+                                flushesExecuted.incrementAndGet();
+                            } catch (IOException e) {
+                                System.err.println("Flush error: " + e.getMessage());
+                            }
+
+                            flushStats.endOperation("flush");
+
+                        });
+                    }
+
+                    //System.out.println("Writer thread: after processing time : " + System.currentTimeMillis());
+
+                }
+
+                if(!buffer.isEmpty()){
+                    stats.startOperation("final-flush");
+                    flushBuffer(buffer, writer);
+                    stats.endOperation("final-flush");
+                    flushesExecuted.incrementAndGet();
+                }
+
+                flushExecutor.shutdown();
+                flushExecutor.awaitTermination(1, TimeUnit.HOURS);
+
+            } catch (IOException | InterruptedException e) {
+                System.err.println("Error writing to file: " + e.getMessage());
+                Thread.currentThread().interrupt();
+            }
+
+        }, "writer-thread");
+    }
+
+    private static ThreadPoolExecutor getFlushExecutor(ThreadFactory flushFactory) {
+        return new ThreadPoolExecutor(
+                1, 1, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(10),
+                flushFactory,
+                new ThreadPoolExecutor.CallerRunsPolicy()
         );
+    }
 
-        // Display stats if requested
-        if (isDisplayStats != null && isDisplayStats.booleanValue() == true) {
-            statsReporter.displayStats();
+    private ThreadPoolExecutor getProcessorPool(ThreadFactory processorFactory) {
+        return new ThreadPoolExecutor(
+                this.processorThreads,
+                this.processorThreads,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(20), // limit task queue size
+                processorFactory,
+                new ThreadPoolExecutor.CallerRunsPolicy() // apply backpressure
+        );
+    }
+
+    private static ThreadFactory getFlushFactory() {
+        return r -> {
+            Thread t = new Thread(r, "flush-thread");
+            threadStatsMap.put(t.getName(), new ThreadStats());
+            return t;
+        };
+    }
+
+    private static ThreadFactory getProcessorFactory() {
+        return r -> {
+            Thread t = new Thread(r, "processor-thread-" + threadStatsMap.size());
+            threadStatsMap.put(t.getName(), new ThreadStats());
+            return t;
+        };
+    }
+
+    private void ensureOnlyOneInstanceIsRunning() {
+        if (!hasRun.compareAndSet(false, true)) {
+            throw new IllegalStateException("One smart-file-processor instance is already running.");
         }
-
-        // Export to JSON if path provided
-        if (jsonPath != null) {
-            statsReporter.exportStatsToJSON(jsonPath);
-        }
-
-        // Export to CSV if path provided
-        if (csvPath != null) {
-            statsReporter.exportStatsToCSV(csvPath);
-        }
-
     }
 
     private List<String> processBatch(List<String> batch) {
